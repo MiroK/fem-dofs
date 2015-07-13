@@ -1,0 +1,17 @@
+The kiss principle says 'Look at the Legendre mass matrix'
+Maybe DG does not need -1, 1 and that's better
+
+Assamble matrices on mesh
+
+Interpolate and verify - KISS no function spaces etc in the first round
+
+Iterative solvers: Jacobi, Richardson, Gauss-Seidel, SOR (round 0) [OK]
+                   add preconditioners
+                   extracting diagonal [OK]
+
+Multigrid
+
+Circle constuction
+
+-laplace(u) with deltas ...
+                    
