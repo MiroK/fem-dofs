@@ -2,7 +2,7 @@
 # Nodal basis <- some polyset + some dofs
 
 import polynomials
-import fem.lagrange
+import fem.lagrange_element
 import numpy as np
 
 def scaling(basis, get_points, matrix, deg_range, bc=None):
@@ -20,7 +20,7 @@ def scaling(basis, get_points, matrix, deg_range, bc=None):
         # Get the elemenent ...
         dof_set = get_points(deg)
         poly_set = basis.basis_functions(deg)
-        element = fem.lagrange.LagrangeElement(poly_set, dof_set)
+        element = fem.lagrange_element.LagrangeElement(poly_set, dof_set)
         # Tranform
         alpha = element.alpha
         mat = alpha.dot(mat.dot(alpha.T))

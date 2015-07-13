@@ -2,21 +2,22 @@ from __future__ import division
 from numpy.polynomial.legendre import leggauss
 import numpy as np
 
-#
-# Deg+1 points in [-1, 1] to define polynomials of degree deg.
+# Deg + 1 points in [-1, 1] to define polynomials of degree deg.
 # For all the points generators we require that the endpoints are -1, 1
-#
 
 def equidistant_points(deg):
     '''Equally spaced points that define polynomial of degree deg.'''
-    assert deg > 0
-    return np.linspace(-1, 1, deg+1)
+    if deg == 0:
+        return np.array([0.])
+    else:
+        return np.linspace(-1, 1, deg+1)
 
 
 def chebyshev_points(deg):
     '''Chebyshev points that define polynomial of degree deg.'''
-    assert deg > 0
-    if deg == 1:
+    if deg == 0:
+        return np.array([0.])
+    elif deg == 1:
         return np.array([-1., 1.])
     else:
         cheb = np.array([np.cos(np.pi*(2*k-1)/(2*(deg+1))) for k in range(2, deg+1)])
@@ -25,8 +26,9 @@ def chebyshev_points(deg):
 
 def gauss_legendre_points(deg):
     '''points of GLL quadrature that define polynomial of degree deg.'''
-    assert deg > 0
-    if deg == 1:
+    if deg == 0:
+        return np.array([0.])
+    elif deg == 1:
         return np.array([-1., 1.])
     else:
         gl = leggauss(deg-1)[0]
@@ -34,13 +36,15 @@ def gauss_legendre_points(deg):
 
 
 def map_to_ufc(points, cell=[0, 1]):
-    '''Map the points from [-1, 1] to UFCInterval [0, 1]'''
+    '''Map the points from [-1, 1] to cell.'''
     return np.array([0.5*cell[0]*(1-p) + 0.5*cell[1]*(1+p) for p in points])
 
 
 def radiate_points(points):
     '''
-    Points above are always symmetric around 0. For fun draw some circles...
+    Points above are always symmetric around 0. Even degree polynomials have a
+    dof at zeo and then pairs on circles. Odd have just pairs on circles. What
+    are the radii of the ciricles for given distribution?
     '''
     # Points closes to the center 0 but not 0
     l = len(points)
@@ -62,18 +66,35 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
    
-    plt.figure()
-    deg = 100
-    radii = radiate_points(equidistant_points(deg))
-    x = range(1, len(radii)+1)
-    plt.plot(x, radii, marker='o', linestyle='--', label='Eqdist')
+    # All points of given degree combined...
+    if False:
+        plt.figure()
+        deg = 100
 
-    radii = radiate_points(gauss_legendre_points(deg))
-    plt.plot(x, radii, marker='x', linestyle='--', label='Gauss')
+        radii = radiate_points(equidistant_points(deg))
+        x = range(1, len(radii)+1)
+        
+        plt.plot(x, radii, marker='o', linestyle='--', label='Eqdist')
 
-    radii = radiate_points(chebyshev_points(deg))
-    plt.plot(x, radii, marker='s', linestyle='--', label='Cheb')
+        radii = radiate_points(gauss_legendre_points(deg))
+        plt.plot(x, radii, marker='x', linestyle='--', label='Gauss')
 
-    plt.legend(loc='best')
-    plt.show()
+        radii = radiate_points(chebyshev_points(deg))
+        plt.plot(x, radii, marker='s', linestyle='--', label='Cheb')
 
+        plt.legend(loc='best')
+        plt.show()
+    
+    # Go as cascade
+    get_points = equidistant_points
+    if True:
+        plt.figure()
+        for deg in range(100):
+            radii = radiate_points(get_points(deg))
+            x = np.ones_like(radii)*(deg+1)
+            plt.plot(x, radii, marker='s', color='g', linestyle='none')
+
+        plt.xlabel('degree')
+        plt.ylabel('radii')
+
+        plt.show()

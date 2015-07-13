@@ -1,12 +1,12 @@
 import polynomials.legendre_basis as leg
 from points.points import chebyshev_points
-from fem.lagrange import LagrangeElement
+from fem.lagrange_element import LagrangeElement
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def cg_optimal_dofs(deg, vary=0):
+def cg_optimal_dofs_restricted(deg, vary=0):
     '''
     What are optimal dofs that give smallest condition number in L^2 norm.
     By CG I mean that I constraint two dofs to be at (-1, 1). The remaining
@@ -72,10 +72,12 @@ def cg_optimal_dofs(deg, vary=0):
 
     return res, x0, cond_number(x0)
 
+    # TODO add unrestricted to (-1, 1) but keep 0 + symmetries
+
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    res, x0, fx0 = cg_optimal_dofs(deg=5, vary=2)
+    res, x0, fx0 = cg_optimal_dofs_restricted(deg=5, vary=2)
 
     print 'x0', x0, 'f(x0)', fx0
     print res
