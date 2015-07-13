@@ -74,6 +74,20 @@ class Expression(GenericFunction):
         '''Eval at x.'''
         return self.eval(x)
 
+
+class Constant(GenericFunction):
+    '''It is what it is.'''
+    def __init__(self, value):
+        self.value = float(value)
+
+    def eval(self, x):
+        '''Eval at x.'''
+        return np.array([self.value])
+
+    def eval_cell(self, x, cell):
+        '''Eval at x.'''
+        return np.array([self.value])
+
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':

@@ -17,6 +17,7 @@ def plot(f, mesh=None, fig=None, **kwargs):
     # Expression
     except AttributeError:
         # Evaluate at mesh vertices
+        assert mesh is not None
         x = np.sort(mesh.vertex_coordinates)
         y = f.eval(x)
 

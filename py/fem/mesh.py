@@ -33,13 +33,17 @@ class IntervalCell(object):
         v0, v1 = self.vertices
         return 0.5*(v1 - v0)*x_hat + 0.5*(v0 + v1)
 
-
     @property
     def Jac(self):
         '''Jacobian of the inv(F_k): x\in this cell --> reference cell.'''
         # Note that theat is d(x_hat) = Jac*d(x)!
         v0, v1 = self.vertices
         return 2./(v1 - v0)
+
+    @property
+    def volume(self):
+        '''Cell size'''
+        return float(np.hypot(*self.vertices))
 
 
 class ReferenceIntervalCell(IntervalCell):
@@ -70,7 +74,9 @@ class IntervalMesh(object):
             # cell/vertex with index is connected to cells/vertices with indices
             cell_vertex = cells
             # Reverse
-            vertex_cell = [0] + [(i-1, i) for i in range(1, n_vertices)] + [n_cells]
+            vertex_cell = [(0, )] +\
+                          [(i-1, i) for i in range(1, n_vertices-1)] +\
+                          [(n_cells-1, )]
             # Tdim - Tdim
             cell_cell = [(c-1, c, c+ 1) for c in range(1, n_cells-1)]
             cell_cell = [(0, 1)] + cell_cell + [(n_cells-2, n_cells-1)]
@@ -97,6 +103,15 @@ class IntervalMesh(object):
         # Anything else fails
         else:
             raise ValueError
+
+    def hmin(self):
+        '''Return smallest cell volume'''
+        return min(cell.volume for cell in Cells(self)) 
+
+    def cell(self, index):
+        '''Get the cell of mesh.'''
+        vertices = self.vertex_coordinates[self.connectivity[(1, 0)][index], :]
+        return IntervalCell(vertices, index)
 
 
 class Cells(object):
@@ -125,9 +140,12 @@ if __name__ == '__main__':
         v0, v1 = cell.vertices
         assert np.allclose(v0, cell.map_from_reference(cell.map_to_reference(v0)))
 
-    cell = IntervalCell(np.array([[0.], [1.]]))
+    print mesh.cell(0).vertices
+
+    cell = IntervalCell(np.array([[0.], [2.]]))
+    assert int(cell.volume) == 2
     assert cell.contains(np.array([0.5]))
-    assert not cell.contains(np.array([1.5]))
+    assert not cell.contains(np.array([2.5]))
 
     xs = np.array([[0.], [0.5], [1.]])
     x_hats = cell.map_to_reference(xs)
