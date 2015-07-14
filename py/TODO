@@ -1,17 +1,33 @@
-The kiss principle says 'Look at the Legendre mass matrix'
-Maybe DG does not need -1, 1 and that's better
+The kiss principle says 'Look at the Legendre mass matrix' [The basis Pk does
+not matter. It makes it easy/difficult to construct the Lagrange interpolants
+but it is the matrix of Lagrange interpol. polys that matters for conditioning]
 
-Assamble matrices on mesh
 
-Interpolate and verify - KISS no function spaces etc in the first round
-
+Assamble matrices on mesh[OK]
+Interpolate and verify - KISS no function spaces etc in the first round [OK]
 Iterative solvers: Jacobi, Richardson, Gauss-Seidel, SOR (round 0) [OK]
-                   add preconditioners
                    extracting diagonal [OK]
+                   add preconditioners [Nofix]
 
-Multigrid
+-------------------------------------------------------------------------------
+SUMMER:
 
-Circle constuction
+>> Multigrid - Luke Olson wrote some paper on this in SJSC
 
--laplace(u) with deltas ...
-                    
+>> Circle constuction
+
+>> -laplace(u) with deltas ... that's something which points to points source
+                            problems
+
+>> The idea about points determining goodness of delta approximations
+
+>> On reference element we have M, but is there a difference for A, A+M,
+   convection diffusion problem with groving velocity? Carry this to mesh
+   computations
+
+>> For an element we can drop the requirement to have (-1, 1). How does that
+   change things for all the matrices. Also, for mesh we will need DG
+   implementation stuff - jump, avg etc...
+
+>> Get the papers from Desktop 4 and more
+>> Write the observations and ideas !!!
