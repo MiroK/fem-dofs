@@ -3,7 +3,7 @@ import numpy as np
 
 
 def plot(f, mesh=None, fig=None, **kwargs):
-    '''Plot functions/expression in 1D.'''
+    '''Plot functions/expression in 1D and spy matrices.'''
     # Decide if function or expression
     try:
         V = f.function_space
@@ -14,12 +14,19 @@ def plot(f, mesh=None, fig=None, **kwargs):
         isort = np.argsort(x[:, 0])
         x = x[isort]
         y = y[isort]
-    # Expression
+    # Expression or matrix
     except AttributeError:
-        # Evaluate at mesh vertices
-        assert mesh is not None
-        x = np.sort(mesh.vertex_coordinates)
-        y = f.eval(x)
+        try:
+            F = f.toarray()
+            fig = plt.figure()
+            plt.spy(F, precision=1E-10)
+            return fig
+        # Expression
+        except AttributeError:
+            # Evaluate at mesh vertices
+            assert mesh is not None
+            x = np.sort(mesh.vertex_coordinates)
+            y = f.eval(x)
 
     if fig is None:
         fig = plt.figure()
