@@ -155,7 +155,7 @@ if __name__ == '__main__':
             Apoly_matrix = 'stiff'
         Aget_geom_tensor = lambda cell: cell.Jac
         # Lhs of lin sys
-        A = assemble_matrix(V, Apoly_matrix, Aget_geom_tensor, timer=1)
+        A = assemble_matrix(V, Apoly_matrix, Aget_geom_tensor, timer=0)
         
         # A_ = assemble_matrix(V, 'stiff', Mget_geom_tensor, timer=0)
         # assert np.linalg.norm(A.toarray() - A_.toarray()) < 1E-13
@@ -180,12 +180,12 @@ if __name__ == '__main__':
         uh = Function(V, x)
        
         # Error norm
-        # Higher order space
+        # Higher DG order space
         fine_degree = degree + 3
         poly_set = leg.basis_functions(fine_degree)
         dof_set = chebyshev_points(fine_degree)
         element = LagrangeElement(poly_set, dof_set)
-        V_fine = FunctionSpace(mesh, element)
+        V_fine = FunctionSpace(mesh, element, 'L2')
         # Interpolate exact solution to fine
         u_fine = V_fine.interpolate(u)
         # Interpolate approx solution fine
@@ -199,7 +199,7 @@ if __name__ == '__main__':
             Apoly_matrix = leg.stiffness_matrix(fine_degree)
         else:
             Apoly_matrix = 'stiff'
-        A_fine = assemble_matrix(V_fine, Apoly_matrix, Aget_geom_tensor, timer=0)
+        A_fine = assemble_matrix(V_fine, Apoly_matrix, Aget_geom_tensor, timer=1)
         # Error
         e = sqrt(np.sum(e*A_fine.dot(e)))
         # Mesh size

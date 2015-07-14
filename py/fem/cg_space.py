@@ -4,6 +4,7 @@ from mesh import IntervalMesh, Cells
 from function import Function
 import numpy as np
 
+
 class CGDofMap(object):
     '''
     Glue the Lagrange elements together to ensure continuity.
@@ -69,10 +70,66 @@ class CGDofMap(object):
         return [dofs.index(self._vertex_to_dofmap[facet])]
 
 
+class DGDofMap(object):
+    '''
+    This class knows how to map cell(index) to its dofs(global numbering).
+    The space if Discontinuous Lagrange
+    '''
+    def __init__(self, mesh, element):
+        '''Build the dofmap for mesh of elements.'''
+        assert isinstance(mesh, IntervalMesh)
+        assert isinstance(element, LagrangeElement)
+
+        c2v = mesh.connectivity[(1, 0)]
+        n_cells = len(c2v)
+        dim = element.dim
+        # This map takes the cell and returs the list of its global dofs 
+        local_to_global = defaultdict(list)
+        
+        global_dof = 0
+        seen_global_dofs = {}
+        for cell, vs in enumerate(c2v):
+            # Local interor dofs are always 0, 1
+            for loc, v in enumerate(vs):
+                local_to_global[cell].append(global_dof)
+                # Collects vertex -> 2 dofs
+                seen_global_dofs[v] = global_dof
+                global_dof += 1
+            # Now go over the interior guys
+            for loc in range(2, dim):
+                local_to_global[cell].append(global_dof)
+                global_dof += 1
+
+        # Remember
+        self.dofmap = local_to_global
+        # Nice by product of this is vertex_to_dofmap. This is not 1-1. Just
+        # keep it here for later ...
+        self._vertex_to_dofmap = [seen_global_dofs[vertex]
+                                  for vertex in sorted(seen_global_dofs.keys())]
+        # Keesh for later computing
+        self.mesh = mesh
+
+    def cell_dofs(self, cell):
+        '''Return local to global map of dofs of this cell.'''
+        return self.dofmap[cell]
+        
+    def tabulate_facet_dofs(self, facet):
+        '''
+        A map from vertex to index such that cell_dofs[index] are the dofs at 
+        facet.
+        '''
+        # This is not well defined?
+        return []
+
+
 class FunctionSpace(object):
     '''Finite element function space ever mesh.'''
-    def __init__(self, mesh, element):
-        self.dofmap = CGDofMap(mesh, element)
+    def __init__(self, mesh, element, continuity='C0'):
+        if continuity == 'C0':
+            self.dofmap = CGDofMap(mesh, element)
+        else:
+            self.dofmap = DGDofMap(mesh, element)
+
         self.element = element
         self.mesh = mesh
         self.dim = len(set(sum((dofs for dofs in self.dofmap.dofmap.values()), [])))
