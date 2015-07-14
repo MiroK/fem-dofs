@@ -49,10 +49,24 @@ class CGDofMap(object):
         # Nice by product of this is vertex_to_dofmap
         self._vertex_to_dofmap = [seen_global_dofs[vertex]
                                   for vertex in sorted(seen_global_dofs.keys())]
+        # Keesh for later computing
+        self.mesh = mesh
 
     def cell_dofs(self, cell):
         '''Return local to global map of dofs of this cell.'''
         return self.dofmap[cell]
+        
+    def tabulate_facet_dofs(self, facet):
+        '''
+        A map from vertex to index such that cell_dofs[index] are the dofs at 
+        facet.
+        '''
+        f2c = self.mesh.connectivity[(0, 1)]
+        # Grab the first cell connected to facet
+        cell = f2c[facet][0]
+        dofs = self.cell_dofs(cell)
+        # Find the index of gloval. This is not the right way...
+        return [dofs.index(self._vertex_to_dofmap[facet])]
 
 
 class FunctionSpace(object):

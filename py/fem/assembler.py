@@ -3,6 +3,15 @@ from scipy.sparse import lil_matrix
 from mesh import Cells
 import time
 
+
+colors = {'blue': '\033[1;37;34m%s\033[0m',
+          'red': '\033[1;37;31m%s\033[0m',
+          'green': '\033[1;37;32m%s\033[0m',
+          'cyan':  '\033[1;37;36m%s\033[0m',
+          'purple':  '\033[1;37;35m%s\033[0m',
+          'orange': '\033[1;33;40m%s\033[0m',}
+
+
 def assemble_matrix(V, poly_matrix, get_geom_tensor, timer=0):
     '''
     Reference element matrix is obtaind from polymatrix and a transformation 
@@ -30,7 +39,8 @@ def assemble_matrix(V, poly_matrix, get_geom_tensor, timer=0):
                 A[gi, gj] += K_matrix[i, j]
 
     if timer:
-        print 'Assembled matrix %d x %d in %g s' % (size, size, time.time()- t0)
+        msg = '\tAssembled matrix %d x %d in %g s' % (size, size, time.time()- t0)
+        print colors['red'] % msg
     return A.tocsr()
 
 # -----------------------------------------------------------------------------
@@ -40,18 +50,21 @@ if __name__ == '__main__':
     sys.path.append('../')
     from mesh import IntervalMesh
     from cg_space import FunctionSpace
-    from function import Function, Expression
+    from function import Function, Expression, Constant
     from lagrange_element import LagrangeElement
     from polynomials import legendre_basis as leg
     from points import chebyshev_points
     from plotting import plot, show
-    from math import log
+    from bcs import DirichletBC
+    from math import log, sqrt
     import numpy as np
     import sys
+    from sympy import sin, pi, Symbol, exp
+    from scipy.sparse.linalg import spsolve
 
     def solve(n_cells):
         # Element
-        degree = 2
+        degree = 7
         poly_set = leg.basis_functions(degree)
         dof_set = chebyshev_points(degree)
         element = LagrangeElement(poly_set, dof_set)
@@ -61,41 +74,36 @@ if __name__ == '__main__':
 
         # Space
         V = FunctionSpace(mesh, element)
+        bc = DirichletBC(V, Constant(0))
 
         # Matrix spec: for mass matrix divide by cell's Jacobian to get geometric
         # tensor
-        poly_matrix = leg.mass_matrix(degree)
-        get_geom_tensor = lambda cell: 1./cell.Jac
-        M = assemble_matrix(V, poly_matrix, get_geom_tensor, timer=1)
+        Mpoly_matrix = leg.mass_matrix(degree)
+        Mget_geom_tensor = lambda cell: 1./cell.Jac
+        M = assemble_matrix(V, Mpoly_matrix, Mget_geom_tensor, timer=0)
         # For stiffness multiply by Jac
-        poly_matrix = leg.stiffness_matrix(degree)
-        get_geom_tensor = lambda cell: cell.Jac
-        A = assemble_matrix(V, poly_matrix, get_geom_tensor, timer=1)
+        Apoly_matrix = leg.stiffness_matrix(degree)
+        Aget_geom_tensor = lambda cell: cell.Jac
+        # Lhs of lin sys
+        A = assemble_matrix(V, Apoly_matrix, Aget_geom_tensor, timer=0)
         
-        # FIXME bcs
-        A = A.toarray()
-        A[0, :] = 0; A[:, 0] = 0; A[0, 0] = 1
-        A[-2, :] = 0; A[:, -2] = 0; A[-2, -2] = 1
-
         # Poisson 
-        from sympy import sin, pi, Symbol
-
         x = Symbol('x')
-        # Rhs
-        w = 5*pi
-        f = Expression(sin(w*x))
-        # Exact solution
-        u = Expression(sin(w*x)/(w**2))
+        w = 8*pi
+        u = sin(w*x)*sin(w*exp(x))
+        f = -u.diff(x, 2)
+
+        f = Expression(f)
+        u = Expression(u)
 
         fV = V.interpolate(f)
 
+        # Rhs of lin sys
         b = M.dot(fV.vector)
-        # FIXME bcs
-        b[0] = 0; b[-2] = 0
-        
-        from scipy.sparse.linalg import spsolve
+        # bcs
+        bc.apply(A, b, True)
         x = spsolve(A, b)
-
+        # As function
         uh = Function(V, x)
        
         # Error norm
@@ -110,26 +118,34 @@ if __name__ == '__main__':
         # Interpolate approx solution fine
         uh_fine = V_fine.interpolate(uh)
 
-        # Error l^2. We can do L^2 and H^1 with matrices
-        el2 = np.sqrt(np.linalg.norm(u_fine.vector - uh_fine.vector))/V_fine.dim
-        N = V.dim
-   
+        # Now make error (vector) in V_fine
+        e = u_fine.vector - uh_fine.vector
+        # Matrices for integration of H10 norm
+        # And H10 norm
+        Apoly_matrix = leg.stiffness_matrix(fine_degree)
+        A_fine = assemble_matrix(V_fine, Apoly_matrix, Aget_geom_tensor, timer=0)
+        # Error
+        e = sqrt(np.sum(e*A_fine.dot(e)))
+        # Mesh size
+        hmin = mesh.hmin()
+
         # Visualize
-        uh_fine.vector -= u_fine.vector
-        uh_fine.vector = np.abs(uh_fine.vector)
-        fig = plot(uh_fine, color='b')
-        show()
+        # uh_fine.vector -= u_fine.vector
+        # uh_fine.vector = np.abs(uh_fine.vector)
+        # fig = plot(uh_fine, color='b')
+        # show()
 
-        return N, el2
+        return hmin, e
 
-    N0, e0 = solve(8)
+    h0, e0 = solve(8)
     for n_cells in [2**i for i in range(4, 10)]:
-        N, e = solve(n_cells)
-        r = log(e/e0)/log(N0/N)
-        
-        print 'N=%d, e=%g, r=%.2f' % (N, e, r)
+        h, e = solve(n_cells)
+        r = log(e/e0)/log(h/h0)
 
-        N0, e0 = N, e
+        msg = 'h = %.2E, e = %.4E r = (%.2f)' % (h, e, r)
+        print colors['green'] % msg 
+
+        h0, e0 = h, e
 
     # FIXME
     # 1) Add boundary conditions <- tabulate_facets?

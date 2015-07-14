@@ -20,6 +20,7 @@ assert dofmap.dofmap[1] == [1, 4, 5, 6]
 # Space
 V = FunctionSpace(mesh, element)
 assert V.dim == 7
+assert dofmap.tabulate_facet_dofs(1) == [1]
 
 mesh = IntervalMesh(a=-1, b=1, n_cells=10)
 V = FunctionSpace(mesh, element)

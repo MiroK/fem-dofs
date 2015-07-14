@@ -51,8 +51,8 @@ class Function(GenericFunction):
     def vertex_values(self):
         '''
         Values of those dofs that are associated with vertices sorted
-        according to vertices. Note that the values are extracted there is no
-        eval call.
+        according to order of vertices in mesh. Note that the values are 
+        extracted there is no eval call.
         '''
         return self.vector[self.function_space.vertex_to_dof_map]
 
