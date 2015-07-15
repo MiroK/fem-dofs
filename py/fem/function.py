@@ -41,12 +41,10 @@ class Function(GenericFunction):
         # And do the dot product
         return coef.dot(phi_x)
 
-
     def interpolate(self, f):
         '''Interpolate f into the function.'''
         interpolant = self.function_space.interpolate(f)
         np.copyto(self.vector, interpolant.vector)
-
 
     def vertex_values(self):
         '''

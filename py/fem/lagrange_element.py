@@ -177,7 +177,7 @@ if __name__ == '__main__':
         assert np.allclose(I, np.eye(n))
 
     # Check other cell
-    a, b, = 0, 1
+    a, b, = 0, 1.1
     cell = IntervalCell(np.array([[a], [b]]))
     if True:
         # pts = np.array([0.3])

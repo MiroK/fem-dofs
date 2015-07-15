@@ -30,4 +30,20 @@ SUMMER:
    implementation stuff - jump, avg etc...
 
 >> Get the papers from Desktop 4 and more
+
 >> Write the observations and ideas !!!
+
+>> Unstructured in 1d has effect? Some '--'-' refine is probably easiest anisot
+
+>> Hermite in 1d, order 3 + higher by bubbles
+
+>> 2d rect or tri.
+
+>> Then there are interesting questions: in addition to A, M, A+M convection
+   diffusion you have mixed Laplacian, Stokes, Elasticity
+
+>> I think the answer is continuouos then discrete to matrix level. Think about
+>> what the condition number mirrors. You saw in 1d that you can get different
+   condition number but there is no visible effect in the error so that's not
+   the relation.
+
