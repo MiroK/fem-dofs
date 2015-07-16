@@ -155,6 +155,25 @@ if __name__ == '__main__':
     poly_set = leg.basis_functions(3)
     x = Symbol('x')
 
+    from mesh import IntervalCell
+    import matplotlib.pyplot as plt
+
+    fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True)
+
+    # Funcions and derivatives. Check continuity
+    for a, b in [(-1.4, -1), (-1, 1), (1, 2), (2, 4)]:
+        x = np.linspace(a, b, 100)
+        cell = IntervalCell(np.array([[a], [b]]))
+        for i, color in zip(range(element.dim), ['r', 'b', 'g', 'c']):
+
+            y = element.eval_basis(i, x, cell)
+            ax0.plot(x, y, color=color)
+
+            y = element.eval_basis_derivative(i, 1, x, cell)
+            ax1.plot(x, y, color=color)
+
+    plt.show()
+
     # Check reference cell
     if True:
         # pts = np.array([0.3])

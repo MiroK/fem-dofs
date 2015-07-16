@@ -1,8 +1,10 @@
 from sympy import integrate, S, Symbol, sin
 from function import Expression, Function
 from mesh import IntervalMesh, Cells
-from cg_space import CGDofMap, FunctionSpace, DGDofMap
+from dofmap import CGDofMap, DGDofMap, HermiteDofMap
+from function_space import FunctionSpace
 from lagrange_element import LagrangeElement
+from hermite_element import HermiteElement
 import numpy as np
 
 # CG ---------
@@ -32,6 +34,7 @@ f = V.interpolate(f)
 g = V.interpolate(f)
 assert np.linalg.norm(f.vector - g.vector) < 1E-13
 
+# DG ------
 # Dofmap
 mesh = IntervalMesh(a=-1, b=1, n_cells=2)
 dofmap = DGDofMap(mesh, element)
@@ -52,3 +55,27 @@ f = V.interpolate(f)
 # As pure function
 g = V.interpolate(f)
 assert np.linalg.norm(f.vector - g.vector) < 1E-13
+
+# Hermite
+# Dofmap
+element = HermiteElement(3)
+mesh = IntervalMesh(a=-1, b=1, n_cells=3)
+dofmap = HermiteDofMap(mesh, element)
+assert dofmap.dofmap[0] == [0, 1, 2, 3]
+assert dofmap.dofmap[1] == [1, 4, 3, 5]
+ 
+# Space
+V = FunctionSpace(mesh, element)
+assert V.dim == 8
+assert dofmap.tabulate_facet_dofs(3) == [1]
+
+mesh = IntervalMesh(a=-1, b=1, n_cells=10)
+V = FunctionSpace(mesh, element)
+# Function: expr
+x = Symbol('x')
+f = Expression(x**2)
+f = V.interpolate(f)
+# As pure function
+g = V.interpolate(f)
+
+assert np.linalg.norm(f.vector - g.vector, np.inf) < 1E-13
