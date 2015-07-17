@@ -2,6 +2,7 @@ from __future__ import division
 import sys
 sys.path.append('../')
 import polynomials.legendre_basis as leg
+from points import gauss_legendre_points
 from mesh import ReferenceIntervalCell
 from sympy import lambdify, Symbol, integrate
 import numpy as np
@@ -12,21 +13,28 @@ class HermiteElement(object):
     Hermite element over reference 1d element (-1, 1).
     '''
     def __init__(self, degree):
-        assert degree == 3, 'Wait more is coming'
-        # Construct Lagrange interpolate for dofs which are 
-        # L0(f) = f(-1), L1(f) = f(1), L2(f) = f`(-1), L3(f) = f`(1)
-        # The underlying polynomial space are Legendre polynomials
+
+        b_degree = degree - 3
         x = Symbol('x')
-        poly_set = leg.basis_functions(deg=3)
+        poly_set = leg.basis_functions(deg=degree)
+        pts0 = gauss_legendre_points(b_degree+1)[1:-1]
+        pts1 = np.array([-1., 1.])
         # The coefficient matrix
-        B = np.zeros((4, 4))
-        B[:, 0] = [(-1)**k for k in range(4)] # Values are (-1)
-        B[:, 1] = np.ones(4)                  # Values at (1)
-        B[0, 2:] = [0, 0]                     # 1` @ -1, 1
-        B[1, 2:] = [1, 1]                     # x` @ -1, 1
-        for row, f in enumerate(poly_set[2:], 2):
-            # Derivative values of the remaining two guys
-            B[row, 2:] = lambdify(x, f.diff(x, 1), 'numpy')(np.array([-1, 1]))
+        B = np.zeros((degree+1, degree+1))
+        B[:, 0] = [(-1)**k for k in range(degree+1)] # Values are (-1)
+        B[:, 1] = np.ones(degree+1)                  # Values at (1)
+
+
+
+        # Val at -1, val at 1, dval at -1, dval at 1, the rest of polyevaluas.
+        for row, f in enumerate(poly_set):
+            vals = lambdify(x, f, 'numpy')(pts0)
+            if isinstance(vals, (int, float)): vals = vals*np.ones(len(pts0))
+            dvals = lambdify(x, f.diff(x, 1), 'numpy')(pts1)
+            if isinstance(dvals, (int, float)): dvals = dvals*np.ones(len(pts1))
+
+            B[row, 2:4] = dvals
+            B[row, 4:] = vals
 
         # Invert to get the coefficients of the nodal basis
         self.alpha = np.linalg.inv(B)
@@ -41,7 +49,8 @@ class HermiteElement(object):
         # polynomials so we can use legval
         
         # Finally remember the dofs as coordinates val, val, dval, dval
-        self.dofs = np.array([[-1.], [1.], [-1.], [1.]])
+        self.dofs = np.hstack([pts1, pts1, pts0])
+
         # And my finite element
         self.cell = ReferenceIntervalCell()
 
@@ -49,8 +58,8 @@ class HermiteElement(object):
         # lower. Represent the L(f) = df/dx(p) = \int Riesz(L) * f dx
         # Riesz(L) = l is a polynomial of degree 3-compute its coeficients
         # They are given by mass matrix of the nodal basis
-        xq, wq = np.polynomial.legendre.leggauss(3+1)
-        M = self.alpha.dot(leg.mass_matrix(3).dot(self.alpha.T))
+        xq, wq = np.polynomial.legendre.leggauss(degree+1)
+        M = self.alpha.dot(leg.mass_matrix(degree).dot(self.alpha.T))
         beta = np.linalg.inv(M)
         # Now I have expansion w.r.t nodal. Combine with alpha to get Legendre
         # beta = beta.dot(self.alpha)
@@ -151,8 +160,9 @@ if __name__ == '__main__':
     from numpy.polynomial.legendre import leggauss
     from function import Expression
 
-    element = HermiteElement(3)
-    poly_set = leg.basis_functions(3)
+    degree = 4
+    element = HermiteElement(degree)
+    poly_set = leg.basis_functions(degree)
     x = Symbol('x')
 
     from mesh import IntervalCell
@@ -164,16 +174,16 @@ if __name__ == '__main__':
     for a, b in [(-1.4, -1), (-1, 1), (1, 2), (2, 4)]:
         x = np.linspace(a, b, 100)
         cell = IntervalCell(np.array([[a], [b]]))
-        for i, color in zip(range(element.dim), ['r', 'b', 'g', 'c']):
+        for i, color in zip(range(element.dim), ['r', 'b', 'g', 'c', 'm', 'k']):
 
             y = element.eval_basis(i, x, cell)
             ax0.plot(x, y, color=color)
 
             y = element.eval_basis_derivative(i, 1, x, cell)
             ax1.plot(x, y, color=color)
+    # plt.show()
 
-    plt.show()
-
+    x = Symbol('x')
     # Check reference cell
     if True:
         # pts = np.array([0.3])

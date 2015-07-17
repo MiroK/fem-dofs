@@ -35,7 +35,7 @@ SUMMER:
 
 >> Unstructured in 1d has effect? Some '--'-' refine is probably easiest anisot
 
->> Hermite in 1d, order 3 + higher by bubbles
+>> Hermite in 1d, order 3 + higher by bubbles [OK, done]
 
 >> 2d rect or tri.
 
@@ -47,4 +47,5 @@ SUMMER:
    condition number but there is no visible effect in the error so that's not
    the relation.
 
->> Hermite: Bubbles - Poisson - Biharmonic
+>> Hermite: Bubbles - Poisson[OK]
+            Biharmonic - requires bending matrix...

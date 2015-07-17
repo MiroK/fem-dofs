@@ -1,3 +1,4 @@
+from __future__ import division
 import sys
 sys.path.append('../')
 from mesh import IntervalMesh, Cells
@@ -23,7 +24,7 @@ import matplotlib.pyplot as plt
 import random
 
 
-def solve(n_cells, degree=3):
+def solve(n_cells, degree=3, with_plot=False):
     # Problem
     w = 3*np.pi
     x = Symbol('x')
@@ -75,7 +76,7 @@ def solve(n_cells, degree=3):
     uh = Function(V, x)
 
     # This is a (slow) way of plotting the high order
-    if False:
+    if with_plot:
         fig = plt.figure()
         ax = fig.gca()
         uV = V.interpolate(u)
@@ -118,19 +119,25 @@ def solve(n_cells, degree=3):
     # Mesh size
     hmin = mesh.hmin()
 
-    return hmin, e
+    # Add the cond number
+    kappa = np.linalg.cond(A.toarray())
+
+    return hmin, e, kappa, A.shape[0]
 
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
     
-    h0, e0 = solve(n_cells=8)
+    degree = 3
+    h0, e0, kappa0, N0 = solve(n_cells=8, degree=degree, with_plot=False)
     for n_cells in [2**i for i in range(4, 10)]:
-        h, e = solve(n_cells=n_cells)
+        h, e, kappa, N = solve(n_cells=n_cells, degree=degree)
         # Rate
         r = log(e/e0)/log(h/h0)
+        r_k = log(kappa0/kappa)/log(h/h0)
 
-        msg = 'h = %.2E\te = %.4E\tr = (%.2f)' % (h, e, r)
-        print colors['green'] % msg
+        msg0 = 'h = %.2E\te = %.4E\tr = (%.2f)' % (h, e, r)
+        msg1 = 'kappa[%d] = %.4E(%.2f)' % (N, kappa, r_k)
+        print colors['green'] % msg0, colors['red'] % msg1
         # Next
-        h0, e0 = h, e
+        h0, e0, kappa0 = h, e, kappa
