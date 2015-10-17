@@ -54,6 +54,22 @@ class LagrangeElement(object):
     def dim(self):
         return len(self.sym_basis)
 
+    def riesz_basis(self, inner_product):
+        '''Compute the riesz representant of dofs in the nodal basis'''
+        M = np.zeros((self.dim, self.dim))
+        for i, u in enumerate(self.sym_basis):
+            M[i, i] = inner_product(u, u)
+            for j, v in enumerate(self.sym_basis[i+1:], i+1):
+                M[i, j] = inner_product(u, v)
+                M[j, i] = M[i, j]
+
+        print '>>', np.linalg.eigvals(M)
+        print M
+        print '>>'
+
+        beta = np.linalg.inv(M)
+        return [sum(c*f for c, f in zip(row, self.sym_basis)) for row in beta]
+
     # Some FIAT/FFC like functionality
     # Other elements with cell K = Interval(a, b) are defined by mapping the
     # reference element. Stuff on reference is x_hat
@@ -136,7 +152,7 @@ if __name__ == '__main__':
         assert np.allclose(v, v_)
         
         # Derivative evaluation
-        order = 2
+        order = 1
         v = element.eval_basis_derivative_all(order, pts)
         v_ = np.array([lambdify(x, element.sym_basis[i].diff(x, order))(np.array(pts))
                        for i in range(element.dim)]).reshape(v.shape)
@@ -176,6 +192,35 @@ if __name__ == '__main__':
                 I[i, j] = element.eval_dof(j, Expression(element.sym_basis[i]))
         assert np.allclose(I, np.eye(n))
 
+        # Check riesz
+        I = np.zeros((n, n))
+        L2_ip = lambda u, v: integrate(u*v, (x, -1, 1))
+        H1_ip = lambda u, v: integrate(u.diff(x, 1)*v.diff(x, 1) + u*v, (x, -1, 1))
+        H10_ip = lambda u, v: integrate(u.diff(x, 1)*v.diff(x, 1), (x, -1, 1))
+
+        inner_product = L2_ip
+        basis = element.sym_basis
+        riesz_basis = element.riesz_basis(inner_product)
+        for i, L in enumerate(riesz_basis):
+            for j, f in enumerate(basis):
+                I[i, j] = inner_product(L, f)
+        assert np.allclose(I, np.eye(n))
+
+        M = np.zeros((self.dim, self.dim))
+        for i, u in enumerate(riesz_basis):
+            M[i, i] = inner_product(u, u)
+            for j, v in enumerate(riesz_basis[i+1:], i+1):
+                M[i, j] = inner_product(u, v)
+                M[j, i] = M[i, j]
+        print M
+        # from sympy.plotting import plot
+        # x = Symbol('x')
+        # ps = plot(basis[0], (x, -1, 1), show=False, color='b')
+        # [ps.append(plot(f, (x, -1, 1), show=False, color='b')[0]) for f in basis[1:]]
+        # ps = plot(riesz_basis[0], (x, -1, 1), show=False)
+        # [ps.append(plot(f, (x, -1, 1), show=False)[0]) for f in riesz_basis[1:]]
+        # ps.show()
+
     # Check other cell
     a, b, = 0, 1.1
     cell = IntervalCell(np.array([[a], [b]]))
@@ -190,7 +235,7 @@ if __name__ == '__main__':
         assert np.allclose(v, v_)
 
         # Derivative evaluation
-        order = 2
+        order = 1
         v = element.eval_basis_derivative_all(order, pts, cell=cell)
         # Convert the basis of element to [a, b]
         v_ = np.array([lambdify(x, element.sym_basis[i].subs(x, (2*x-a-b)/(b-a)).diff(x, order))(np.array(pts))

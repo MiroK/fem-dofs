@@ -37,6 +37,4 @@ function gauss_legendre_points(degree::Int64)
   end
 end
 
-# Add Gauss-Legendre nodes
-
 end
