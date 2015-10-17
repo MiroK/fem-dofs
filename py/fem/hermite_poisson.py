@@ -36,12 +36,12 @@ def solve(n_cells, degree=3, with_plot=False):
     f = Expression(f)
 
     # Space
-    element = HermiteElement(degree)
-    # poly_set = leg.basis_functions(degree)
-    # dof_set = chebyshev_points(degree)
-    # element = LagrangeElement(poly_set, dof_set)
+    # element = HermiteElement(degree)
+    poly_set = leg.basis_functions(degree)
+    dof_set = chebyshev_points(degree)
+    element = LagrangeElement(poly_set, dof_set)
 
-    mesh = IntervalMesh(a=0, b=2, n_cells=n_cells)
+    mesh = IntervalMesh(a=-1, b=1, n_cells=n_cells)
     V = FunctionSpace(mesh, element)
     bc = DirichletBC(V, u)
 
@@ -129,6 +129,9 @@ def solve(n_cells, degree=3, with_plot=False):
 if __name__ == '__main__':
     
     degree = 3
+    print '-'*79
+    print degree
+    print '-'*79
     h0, e0, kappa0, N0 = solve(n_cells=8, degree=degree, with_plot=False)
     for n_cells in [2**i for i in range(4, 10)]:
         h, e, kappa, N = solve(n_cells=n_cells, degree=degree)

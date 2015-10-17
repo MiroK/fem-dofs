@@ -60,7 +60,7 @@ class Expression(GenericFunction):
     def __init__(self, expr):
         assert isinstance(expr, Expr)
         x = Symbol('x')
-        assert x in expr.atoms()
+        # assert x in expr.atoms()
         self.expr = lambdify(x, expr, 'numpy')
     
     def eval(self, x):

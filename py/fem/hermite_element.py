@@ -24,8 +24,6 @@ class HermiteElement(object):
         B[:, 0] = [(-1)**k for k in range(degree+1)] # Values are (-1)
         B[:, 1] = np.ones(degree+1)                  # Values at (1)
 
-
-
         # Val at -1, val at 1, dval at -1, dval at 1, the rest of polyevaluas.
         for row, f in enumerate(poly_set):
             vals = lambdify(x, f, 'numpy')(pts0)
