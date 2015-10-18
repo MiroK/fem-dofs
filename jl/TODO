@@ -1,2 +1,11 @@
 >> Polyval, Polyder, Legval, Legder
 >> Legendre basis is then unit vecotrs in coefs...
+
+1. mesh
+2. FIAT functionality
+3. UFL + FF functionality
+4. assembly
+5. linear algebra
+
+BUT THE FIRST THING MUST BE THE TYPESYSTEM AND EVEN BEFORE THAT I HAVE TO
+UNDERSTAND MODULES/IMPORTS AND (WHETHER TO USE) METAPROGRAMMING 
