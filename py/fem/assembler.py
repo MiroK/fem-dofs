@@ -73,12 +73,24 @@ def quadrature_assamble_matrix(V, poly_matrix):
             weights = wq/cell.Jac
             K_matrix = (weights*K_matrix).dot(K_matrix.T)
             return K_matrix
-    else:
+
+    elif poly_matrix == 'stiffness':
         # Higher degree than necessary
         def element_matrix(finite_element, cell):
             # Map the points to cell
             points = cell.map_from_reference(xq)
             K_matrix = finite_element.eval_basis_derivative_all(1, points, cell)
+            # Remember dx
+            weights = wq/cell.Jac
+            K_matrix = (weights*K_matrix).dot(K_matrix.T)
+            return K_matrix
+
+    elif poly_matrix == 'bending':
+        # Higher degree than necessary
+        def element_matrix(finite_element, cell):
+            # Map the points to cell
+            points = cell.map_from_reference(xq)
+            K_matrix = finite_element.eval_basis_derivative_all(2, points, cell)
             # Remember dx
             weights = wq/cell.Jac
             K_matrix = (weights*K_matrix).dot(K_matrix.T)

@@ -16,7 +16,7 @@ from points import chebyshev_points
 
 from math import log, sqrt
 import numpy as np
-from sympy import sin, pi, Symbol, exp
+from sympy import sin, pi, Symbol, exp, integrate, Matrix, S
 from scipy.sparse.linalg import spsolve
 
 from plotting import plot, show
@@ -26,24 +26,22 @@ import random
 
 def solve(n_cells, degree=3, with_plot=False):
     # Problem
-    w = 3*np.pi
     x = Symbol('x')
-    u = sin(w*x)
-    f = -u.diff(x, 2)
+    vvvv = -0.0625*x**3/pi**3 + 0.0625*x/pi**3 + sin(2*pi*x)/(16*pi**4)
+    u = -vvvv.diff(x, 2)
+    f = sin(2*pi*x)
 
     # As Expr
     u = Expression(u)
     f = Expression(f)
+    vvvv = Expression(vvvv)
 
     # Space
-    # element = HermiteElement(degree)
-    poly_set = leg.basis_functions(degree)
-    dof_set = chebyshev_points(degree)
-    element = LagrangeElement(poly_set, dof_set)
+    element = HermiteElement(degree)
 
     mesh = IntervalMesh(a=-1, b=1, n_cells=n_cells)
     V = FunctionSpace(mesh, element)
-    bc = DirichletBC(V, u)
+    bc = DirichletBC(V, vvvv)
 
     # Need mass matrix to intefrate the rhs
     M = assemble_matrix(V, 'mass', get_geom_tensor=None, timer=0)
@@ -56,7 +54,7 @@ def solve(n_cells, degree=3, with_plot=False):
     # M_ = assemble_matrix(V, Mpoly_matrix, Mget_geom_tensor, timer=0)
     
     # Stiffness matrix for Laplacian
-    A = assemble_matrix(V, 'stiffness', get_geom_tensor=None, timer=0)
+    A = assemble_matrix(V, 'bending', get_geom_tensor=None, timer=0)
     # NOTE the above
     # Apoly_matrix = leg.stiffness_matrix(degree)
     # A_ = assemble_matrix(V, Apoly_matrix, Aget_geom_tensor, timer=0)
@@ -70,8 +68,13 @@ def solve(n_cells, degree=3, with_plot=False):
     bc.apply(A, b, True)
     x = spsolve(A, b)
 
-    # As function
-    uh = Function(V, x)
+    print '>>>>', np.linalg.norm(x - V.interpolate(vvvv).vector)
+
+    ALaplace = assemble_matrix(V, 'stiffness', get_geom_tensor=None, timer=0)
+
+    c = ALaplace.dot(x)
+    y = spsolve(M, c)
+    uh = Function(V, y)
 
     # This is a (slow) way of plotting the high order
     if with_plot:
@@ -94,11 +97,9 @@ def solve(n_cells, degree=3, with_plot=False):
 
         plt.show()
 
-    # Error norm in CG high order
+    # Error norm
     fine_degree = degree + 3
-    poly_set = leg.basis_functions(fine_degree)
-    dof_set = chebyshev_points(fine_degree)
-    element = LagrangeElement(poly_set, dof_set)
+    element = HermiteElement(fine_degree)
     
     V_fine = FunctionSpace(mesh, element)
     # Interpolate exact solution to fine
@@ -109,19 +110,8 @@ def solve(n_cells, degree=3, with_plot=False):
     # Difference vector
     e = u_fine.vector - uh_fine.vector
 
-    # L2
-    if False:
-        Apoly_matrix = leg.mass_matrix(fine_degree)
-        get_geom_tensor = lambda cell: 1./cell.Jac
-
-    # Need matrix for integration of H10 norm
-    else:
-        Apoly_matrix = leg.stiffness_matrix(fine_degree)
-        get_geom_tensor = lambda cell: cell.Jac
-
-    A_fine = assemble_matrix(V_fine, Apoly_matrix, get_geom_tensor, timer=0)
-
     # Integrate the error
+    A_fine = assemble_matrix(V_fine, 'mass', get_geom_tensor=None, timer=0)
     e = sqrt(np.sum(e*A_fine.dot(e)))
     # Mesh size
     hmin = mesh.hmin()
@@ -134,20 +124,36 @@ def solve(n_cells, degree=3, with_plot=False):
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    
-    degree = 4
-    print '-'*79
-    print degree
-    print '-'*79
-    h0, e0, kappa0, N0 = solve(n_cells=8, degree=degree, with_plot=False)
-    for n_cells in [2**i for i in range(4, 10)]:
-        h, e, kappa, N = solve(n_cells=n_cells, degree=degree)
-        # Rate
-        r = log(e/e0)/log(h/h0)
-        r_k = log(kappa0/kappa)/log(h/h0)
+    # Test
+    if True:
+        degree = 3
+        print '-'*79
+        print degree
+        print '-'*79
 
-        msg0 = 'h = %.2E\te = %.4E\tr = (%.2f)' % (h, e, r)
-        msg1 = 'kappa[%d] = %.4E(%.2f)' % (N, kappa, r_k)
-        print colors['green'] % msg0, colors['red'] % msg1
-        # Next
-        h0, e0, kappa0 = h, e, kappa
+        iis =  [2**i for i in range(4, 10)]
+        data = np.zeros((4, 1+len(iis))) # rows
+        h0, e0, kappa0, N0 = solve(n_cells=8, degree=degree, with_plot=False)
+        data[:, 0] = [N0, e0, np.nan, kappa0]
+
+        for col, n_cells in enumerate(iis, 1):
+            h, e, kappa, N = solve(n_cells=n_cells, degree=degree)
+            # Rate
+            r = log(e/e0)/log(h/h0)
+            r_k = log(kappa0/kappa)/log(h/h0)
+
+            msg0 = 'h = %.2E\te = %.4E\tr = (%.2f)' % (h, e, r)
+            msg1 = 'kappa[%d] = %.4E(%.2f)' % (N, kappa, r_k)
+            print colors['green'] % msg0, colors['red'] % msg1
+            # Next
+            h0, e0, kappa0 = h, e, kappa
+
+            data[:, col] = [N, e, r, kappa]
+
+
+    print data
+    print ' & '.join(map(lambda x: '%d' % x, data[0, :])) + r'\\'
+    print ' & '.join(map(lambda x: '%.2e' % x, data[1, :])) + r'\\'
+    print ' & '.join(map(lambda x: '%.2f' % x, data[2, :])) + r'\\'
+
+    h0, e0, kappa0, N0 = solve(n_cells=2**9, degree=degree, with_plot=True)

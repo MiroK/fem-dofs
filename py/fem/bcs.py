@@ -72,8 +72,10 @@ class DirichletBC(object):
         Apply boundary conditionts to matrix A, vector b possibly in a symmetric
         way.
         '''
-        assert A.shape[0] == A.shape[1] and A.shape[0] == len(b)
-        assert len(b) == self.function_space.dim
+        assert A.shape[0] == A.shape[1] 
+        if b is not None:
+            assert A.shape[0] == len(b)
+            assert len(b) == self.function_space.dim
 
         if not symmetry:
             # dof index --> value to be prescribed to b

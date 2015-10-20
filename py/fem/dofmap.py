@@ -198,4 +198,7 @@ class HermiteDofMap(object):
         dofs = self.cell_dofs(cell)
         # Find the index of global. This is not the right way...
         # HACK to set bcs in Poisson. I only need @ value functionals
-        return [dofs.index(self._vertex_to_dofmap0[facet])]
+        # return [dofs.index(self._vertex_to_dofmap0[facet])]
+
+        return [dofs.index(self._vertex_to_dofmap0[facet])] + \
+               [dofs.index(self._vertex_to_dofmap1[facet])]
